@@ -12,7 +12,7 @@ from modules.api import api
 
 from scripts import external_code, global_state
 from scripts.processor import preprocessor_filters
-from scripts.logging import logger
+from scripts.cn_logging import logger
 
 
 def encode_to_base64(image):

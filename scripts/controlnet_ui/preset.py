@@ -6,7 +6,7 @@ from typing import Dict, List
 from modules import scripts
 from scripts.infotext import parse_unit, serialize_unit
 from scripts.controlnet_ui.tool_button import ToolButton
-from scripts.logging import logger
+from scripts.cn_logging import logger
 from scripts.processor import preprocessor_filters
 from scripts import external_code
 

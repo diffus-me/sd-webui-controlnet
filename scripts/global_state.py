@@ -7,7 +7,7 @@ from modules import shared, scripts, sd_models
 from modules.paths import models_path
 from scripts.processor import *
 from scripts.utils import ndarray_lru_cache
-from scripts.logging import logger
+from scripts.cn_logging import logger
 
 from typing import Dict, Callable, Optional, Tuple, List
 
