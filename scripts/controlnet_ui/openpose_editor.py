@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Tuple
 from annotator.openpose import decode_json_as_poses, draw_poses
 from scripts.controlnet_ui.modal import ModalInterface
 from modules import shared
-from scripts.logging import logger
+from scripts.cn_logging import logger
 
 
 def parse_data_url(data_url: str):

@@ -21,7 +21,7 @@ from scripts.controlmodel_ipadapter import PlugableIPAdapter, clear_all_ip_adapt
 from scripts.utils import load_state_dict, get_unique_axis0
 from scripts.hook import ControlParams, UnetHook, ControlModelType, HackedImageRNG
 from scripts.controlnet_ui.controlnet_ui_group import ControlNetUiGroup, UiControlNetUnit
-from scripts.logging import logger
+from scripts.cn_logging import logger
 from modules.processing import StableDiffusionProcessingImg2Img, StableDiffusionProcessingTxt2Img
 from modules.images import save_image
 from scripts.infotext import Infotext

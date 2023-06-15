@@ -8,7 +8,7 @@ import modules.processing
 
 
 from enum import Enum
-from scripts.logging import logger
+from scripts.cn_logging import logger
 from modules import devices, lowvram, shared, scripts
 
 cond_cast_unet = getattr(devices, 'cond_cast_unet', lambda x: x)
