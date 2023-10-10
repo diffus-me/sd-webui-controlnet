@@ -104,7 +104,7 @@ def image_dict_from_any(image) -> Optional[Dict[str, np.ndarray]]:
         elif image['image']:
             image['image'] = external_code.to_base64_nparray(image['image'])
         else:
-            image['image'] = None            
+            image['image'] = None
 
     # If there is no image, return image with None image and None mask
     if image['image'] is None:
@@ -140,10 +140,10 @@ def image_has_mask(input_image: np.ndarray) -> bool:
 
     Returns:
         bool: True if the image has a non-empty alpha channel, False otherwise.
-    """    
+    """
     return (
-        input_image.ndim == 3 and 
-        input_image.shape[2] == 4 and 
+        input_image.ndim == 3 and
+        input_image.shape[2] == 4 and
         np.max(input_image[:, :, 3]) > 127
     )
 
@@ -174,7 +174,7 @@ def prepare_mask(
     mask = mask.convert("L")
     if getattr(p, "inpainting_mask_invert", False):
         mask = ImageOps.invert(mask)
-    
+
     if hasattr(p, 'mask_blur_x'):
         if getattr(p, "mask_blur_x", 0) > 0:
             np_mask = np.array(mask)
@@ -189,7 +189,7 @@ def prepare_mask(
     else:
         if getattr(p, "mask_blur", 0) > 0:
             mask = mask.filter(ImageFilter.GaussianBlur(p.mask_blur))
-    
+
     return mask
 
 
@@ -238,6 +238,7 @@ class Script(scripts.Script, metaclass=(
         self.detected_map = []
         self.post_processors = []
         self.noise_modifier = None
+        self.unit_args_len = []
         batch_hijack.instance.process_batch_callbacks.append(self.batch_tab_process)
         batch_hijack.instance.process_batch_each_callbacks.append(self.batch_tab_process_each)
         batch_hijack.instance.postprocess_batch_each_callbacks.insert(0, self.batch_tab_postprocess_each)
@@ -274,8 +275,8 @@ class Script(scripts.Script, metaclass=(
         Values of those returned components will be passed to run() and process() functions.
         """
         infotext = Infotext()
-        
-        controls = ()
+
+        controls = []
         max_models = shared.opts.data.get("control_net_unit_count", 3)
         elem_id_tabname = ("img2img" if is_img2img else "txt2img") + "_controlnet"
         with gr.Group(elem_id=elem_id_tabname):
@@ -283,23 +284,25 @@ class Script(scripts.Script, metaclass=(
                 if max_models > 1:
                     with gr.Tabs(elem_id=f"{elem_id_tabname}_tabs"):
                         for i in range(max_models):
-                            with gr.Tab(f"ControlNet Unit {i}", 
+                            with gr.Tab(f"ControlNet Unit {i}",
                                         elem_classes=['cnet-unit-tab']):
-                                group, state = self.uigroup(f"ControlNet-{i}", is_img2img, elem_id_tabname)
+                                group, components = self.uigroup(f"ControlNet-{i}", is_img2img, elem_id_tabname)
                                 infotext.register_unit(i, group)
-                                controls += (state,)
+                                controls += components
+                                self.unit_args_len.append(len(components))
                 else:
                     with gr.Column():
-                        group, state = self.uigroup(f"ControlNet", is_img2img, elem_id_tabname)
+                        group, components = self.uigroup(f"ControlNet", is_img2img, elem_id_tabname)
                         infotext.register_unit(0, group)
-                        controls += (state,)
+                        controls += components
+                        self.unit_args_len.append(len(components))
 
         if shared.opts.data.get("control_net_sync_field_args", True):
             self.infotext_fields = infotext.infotext_fields
             self.paste_field_names = infotext.paste_field_names
 
         return controls
-    
+
     @staticmethod
     def clear_control_model_cache():
         Script.model_cache.clear()
@@ -526,7 +529,7 @@ class Script(scripts.Script, metaclass=(
             remote_unit = Script.parse_remote_call(p, Script.get_default_ui_unit(), 0)
             if remote_unit.enabled:
                 units.append(remote_unit)
-        
+
         enabled_units = [
             copy(local_unit)
             for idx, unit in enumerate(units)
@@ -538,7 +541,7 @@ class Script(scripts.Script, metaclass=(
 
     @staticmethod
     def choose_input_image(
-            p: processing.StableDiffusionProcessing, 
+            p: processing.StableDiffusionProcessing,
             unit: external_code.ControlNetUnit,
             idx: int
         ) -> Tuple[np.ndarray, bool]:
@@ -582,7 +585,7 @@ class Script(scripts.Script, metaclass=(
                 input_image = HWC3(image['image'])
 
             have_mask = 'mask' in image and not (
-                (image['mask'][:, :, 0] <= 5).all() or 
+                (image['mask'][:, :, 0] <= 5).all() or
                 (image['mask'][:, :, 0] >= 250).all()
             )
 
@@ -609,10 +612,10 @@ class Script(scripts.Script, metaclass=(
 
             input_image = HWC3(np.asarray(input_image))
             image_from_a1111 = True
-        
+
         assert isinstance(input_image, np.ndarray)
         return input_image, image_from_a1111
-    
+
     @staticmethod
     def bound_check_params(unit: external_code.ControlNetUnit) -> None:
         """
@@ -637,7 +640,7 @@ class Script(scripts.Script, metaclass=(
                 setattr(unit, param, default_value)
                 logger.warning(f'[{unit.module}.{param}] Invalid value({value}), using default value {default_value}.')
 
-    def controlnet_main_entry(self, p):
+    def controlnet_main_entry(self, p, units: list[UiControlNetUnit]):
         sd_ldm = p.sd_model
         unet = sd_ldm.model.diffusion_model
         self.noise_modifier = None
@@ -651,9 +654,10 @@ class Script(scripts.Script, metaclass=(
         # always clear (~0.05s)
         clear_all_secondary_control_models()
 
-        if not batch_hijack.instance.is_batch:
-            self.enabled_units = Script.get_enabled_units(p)
+        # if not batch_hijack.instance.is_batch:
+        #     self.enabled_units = Script.get_enabled_units(p)
 
+        self.enabled_units = [unit for unit in units if unit.enabled]
         if len(self.enabled_units) == 0:
            self.latest_network = None
            return
@@ -698,7 +702,7 @@ class Script(scripts.Script, metaclass=(
                 a1111_i2i_resize_mode = getattr(p, "resize_mode", None)
                 if a1111_i2i_resize_mode is not None:
                     resize_mode = external_code.resize_mode_from_value(a1111_i2i_resize_mode)
-            
+
             a1111_mask_image : Optional[Image.Image] = getattr(p, "image_mask", None)
             if 'inpaint' in unit.module and not image_has_mask(input_image) and a1111_mask_image is not None:
                 a1111_mask = np.array(prepare_mask(a1111_mask_image, p))
@@ -722,13 +726,13 @@ class Script(scripts.Script, metaclass=(
                 crop_region = masking.expand_crop_region(crop_region, p.width, p.height, mask.width, mask.height)
 
                 input_image = [
-                    images.resize_image(resize_mode.int_value(), i, mask.width, mask.height) 
+                    images.resize_image(resize_mode.int_value(), i, mask.width, mask.height)
                     for i in input_image
                 ]
 
                 input_image = [x.crop(crop_region) for x in input_image]
                 input_image = [
-                    images.resize_image(external_code.ResizeMode.OUTER_FIT.int_value(), x, p.width, p.height) 
+                    images.resize_image(external_code.ResizeMode.OUTER_FIT.int_value(), x, p.width, p.height)
                     for x in input_image
                 ]
 
@@ -806,8 +810,8 @@ class Script(scripts.Script, metaclass=(
             seed = set_numpy_seed(p)
             logger.debug(f"Use numpy seed {seed}.")
             detected_map, is_image = preprocessor(
-                input_image, 
-                res=preprocessor_resolution, 
+                input_image,
+                res=preprocessor_resolution,
                 thr_a=unit.threshold_a,
                 thr_b=unit.threshold_b,
             )
@@ -961,9 +965,9 @@ class Script(scripts.Script, metaclass=(
         self.detected_map = detected_maps
         self.post_processors = post_processors
 
-    def controlnet_hack(self, p):
+    def controlnet_hack(self, p, units: list[UiControlNetUnit]):
         t = time.time()
-        self.controlnet_main_entry(p)
+        self.controlnet_main_entry(p, units)
         if len(self.enabled_units) > 0:
             logger.info(f'ControlNet Hooked - Time = {time.time() - t}')
         return
@@ -974,7 +978,13 @@ class Script(scripts.Script, metaclass=(
 
     def process(self, p, *args, **kwargs):
         if not self.process_has_sdxl_refiner(p):
-            self.controlnet_hack(p)
+            units = []
+            offset = 0
+            for args_len in self.unit_args_len:
+                unit_args = args[offset: offset + args_len]
+                units.append(UiControlNetUnit(*unit_args))
+                offset += args_len
+            self.controlnet_hack(p, units)
         return
 
     def before_process_batch(self, p, *args, **kwargs):
@@ -1111,7 +1121,7 @@ def on_ui_settings():
     shared.opts.add_option("controlnet_disable_openpose_edit", shared.OptionInfo(
         False, "Disable openpose edit", gr.Checkbox, {"interactive": True}, section=section))
     shared.opts.add_option("controlnet_ignore_noninpaint_mask", shared.OptionInfo(
-        False, "Ignore mask on ControlNet input image if control type is not inpaint", 
+        False, "Ignore mask on ControlNet input image if control type is not inpaint",
         gr.Checkbox, {"interactive": True}, section=section))
 
 

@@ -993,18 +993,7 @@ class ControlNetUiGroup(object):
         else:
             subscribe_for_output_dir()
 
-        (
-            ControlNetUiGroup.img2img_submit_button
-            if is_img2img
-            else ControlNetUiGroup.txt2img_submit_button
-        ).click(
-            fn=UiControlNetUnit,
-            inputs=list(unit_args),
-            outputs=unit,
-            queue=False,
-        )
-
-        return unit
+        return list(unit_args)
 
     @staticmethod
     def on_after_component(component, **_kwargs):
