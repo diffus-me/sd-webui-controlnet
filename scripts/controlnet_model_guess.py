@@ -168,6 +168,30 @@ def build_model_by_guess(state_dict, unet, model_path):
         down_opts = tuple(filter(lambda item: item.endswith("down_opt.op.weight"), state_dict))
         use_conv = len(down_opts) > 0
         is_sdxl = (cin % 256) == 0
+
+        # Fix problem of loading t2i-adapter_diffusers_xl models
+        # which has different names for each layers than a regular t2i-adapter model
+        if "diffuser" in model_path:
+            key_mappings = {}
+            for item in state_dict.keys():
+                tokens = item.split(".")
+                if tokens[0] != "body":
+                    key_mappings[item] = item
+                    continue
+                num1 = int(tokens[1])
+                if tokens[2] == "in_conv":
+                    tokens[1] = str(num1 * 2)
+                    key_mappings[item] = ".".join(tokens)
+                else:
+                    num2 = int(tokens[3])
+                    tokens[1] = str(num1 * 2 + num2)
+                    key_mappings[item] = ".".join(tokens[0:2] + tokens[-2:])
+
+            state_dict_alt = {}
+            for item in key_mappings:
+                state_dict_alt[key_mappings[item]] = state_dict[item]
+            state_dict = state_dict_alt
+
         adapter = Adapter(
             cin=cin,
             channels=[channel, channel*2, channel*4, channel*4],
