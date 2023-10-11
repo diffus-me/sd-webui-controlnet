@@ -658,6 +658,7 @@ class Script(scripts.Script, metaclass=(
         #     self.enabled_units = Script.get_enabled_units(p)
 
         self.enabled_units = [unit for unit in units if unit.enabled]
+        Infotext.write_infotext(self.enabled_units, p)
         if len(self.enabled_units) == 0:
            self.latest_network = None
            return
