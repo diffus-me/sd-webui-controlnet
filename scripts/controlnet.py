@@ -25,6 +25,8 @@ from scripts.cn_logging import logger
 from modules.processing import StableDiffusionProcessingImg2Img, StableDiffusionProcessingTxt2Img
 from modules.images import save_image
 from scripts.infotext import Infotext
+from internal_controlnet.controlnet_unit import ControlNetUnit
+
 
 import cv2
 import numpy as np
@@ -252,7 +254,7 @@ class Script(scripts.Script, metaclass=(
 
     @staticmethod
     def get_default_ui_unit(is_ui=True):
-        cls = UiControlNetUnit if is_ui else external_code.ControlNetUnit
+        cls = UiControlNetUnit if is_ui else ControlNetUnit
         return cls(
             enabled=False,
             module="none",
@@ -373,7 +375,7 @@ class Script(scripts.Script, metaclass=(
         return attribute_value if attribute_value is not None else default_value
 
     @staticmethod
-    def parse_remote_call(p, unit: external_code.ControlNetUnit, idx):
+    def parse_remote_call(p, unit: ControlNetUnit, idx):
         selector = Script.get_remote_call
 
         unit.enabled = selector(p, "control_net_enabled", unit.enabled, idx, strict=True)
@@ -542,7 +544,7 @@ class Script(scripts.Script, metaclass=(
     @staticmethod
     def choose_input_image(
             p: processing.StableDiffusionProcessing,
-            unit: external_code.ControlNetUnit,
+            unit: ControlNetUnit,
             idx: int
         ) -> Tuple[np.ndarray, bool]:
         """ Choose input image from following sources with descending priority:
@@ -617,14 +619,14 @@ class Script(scripts.Script, metaclass=(
         return input_image, image_from_a1111
 
     @staticmethod
-    def bound_check_params(unit: external_code.ControlNetUnit) -> None:
+    def bound_check_params(unit: ControlNetUnit) -> None:
         """
         Checks and corrects negative parameters in ControlNetUnit 'unit'.
         Parameters 'processor_res', 'threshold_a', 'threshold_b' are reset to 
         their default values if negative.
         
         Args:
-            unit (external_code.ControlNetUnit): The ControlNetUnit instance to check.
+            unit (ControlNetUnit): The ControlNetUnit instance to check.
         """
         cfg = preprocessor_sliders_config.get(
             global_state.get_module_basename(unit.module), [])
