@@ -8,7 +8,7 @@ from scripts.infotext import parse_unit, serialize_unit
 from scripts.controlnet_ui.tool_button import ToolButton
 from scripts.cn_logging import logger
 from scripts.processor import preprocessor_filters
-from scripts import external_code
+from internal_controlnet.controlnet_unit import ControlNetUnit
 
 save_symbol = "\U0001f4be"  # 💾
 delete_symbol = "\U0001f5d1\ufe0f"  # 🗑️
@@ -112,7 +112,7 @@ class ControlNetPresetUI(object):
                     gr.update(visible=False),
                     *(
                         (gr.skip(),)
-                        * (len(vars(external_code.ControlNetUnit()).keys()) + 1)
+                        * (len(vars(ControlNetUnit()).keys()) + 1)
                     ),
                 )
 
@@ -120,7 +120,7 @@ class ControlNetPresetUI(object):
 
             infotext = ControlNetPresetUI.presets[name]
             preset_unit = parse_unit(infotext)
-            current_unit = external_code.ControlNetUnit(*ui_states)
+            current_unit = ControlNetUnit(*ui_states)
             preset_unit.image = None
             current_unit.image = None
 
@@ -135,7 +135,7 @@ class ControlNetPresetUI(object):
                     gr.update(visible=False),
                     *(
                         (gr.skip(),)
-                        * (len(vars(external_code.ControlNetUnit()).keys()) + 1)
+                        * (len(vars(ControlNetUnit()).keys()) + 1)
                     ),
                 )
 
@@ -185,7 +185,7 @@ class ControlNetPresetUI(object):
                 return gr.update(visible=True), gr.update(), gr.update()
 
             ControlNetPresetUI.save_preset(
-                name, external_code.ControlNetUnit(*ui_states)
+                name, ControlNetUnit(*ui_states)
             )
             return (
                 gr.update(),  # name dialog
@@ -230,7 +230,7 @@ class ControlNetPresetUI(object):
                 return gr.update(visible=False), gr.update()
 
             ControlNetPresetUI.save_preset(
-                new_name, external_code.ControlNetUnit(*ui_states)
+                new_name, ControlNetUnit(*ui_states)
             )
             return gr.update(visible=False), gr.update(
                 choices=ControlNetPresetUI.dropdown_choices(), value=new_name
@@ -256,7 +256,7 @@ class ControlNetPresetUI(object):
 
             infotext = ControlNetPresetUI.presets[preset_name]
             preset_unit = parse_unit(infotext)
-            current_unit = external_code.ControlNetUnit(*ui_states)
+            current_unit = ControlNetUnit(*ui_states)
             preset_unit.image = None
             current_unit.image = None
 
@@ -287,7 +287,7 @@ class ControlNetPresetUI(object):
         return list(ControlNetPresetUI.presets.keys()) + [NEW_PRESET]
 
     @staticmethod
-    def save_preset(name: str, unit: external_code.ControlNetUnit):
+    def save_preset(name: str, unit: ControlNetUnit):
         infotext = serialize_unit(unit)
         with open(
             os.path.join(ControlNetPresetUI.preset_directory, f"{name}.txt"), "w"
