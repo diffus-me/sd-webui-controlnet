@@ -238,6 +238,7 @@ class Script(scripts.Script, metaclass=(
         self.detected_map = []
         self.post_processors = []
         self.noise_modifier = None
+        self.unit_args_len = []
         batch_hijack.instance.process_batch_callbacks.append(self.batch_tab_process)
         batch_hijack.instance.process_batch_each_callbacks.append(self.batch_tab_process_each)
         batch_hijack.instance.postprocess_batch_each_callbacks.insert(0, self.batch_tab_postprocess_each)
@@ -275,7 +276,7 @@ class Script(scripts.Script, metaclass=(
         """
         infotext = Infotext()
         
-        controls = ()
+        controls = []
         max_models = shared.opts.data.get("control_net_unit_count", 3)
         elem_id_tabname = ("img2img" if is_img2img else "txt2img") + "_controlnet"
         with gr.Group(elem_id=elem_id_tabname):
@@ -285,14 +286,16 @@ class Script(scripts.Script, metaclass=(
                         for i in range(max_models):
                             with gr.Tab(f"ControlNet Unit {i}", 
                                         elem_classes=['cnet-unit-tab']):
-                                group, state = self.uigroup(f"ControlNet-{i}", is_img2img, elem_id_tabname)
+                                group, components = self.uigroup(f"ControlNet-{i}", is_img2img, elem_id_tabname)
                                 infotext.register_unit(i, group)
-                                controls += (state,)
+                                controls += components
+                                self.unit_args_len.append(len(components))
                 else:
                     with gr.Column():
-                        group, state = self.uigroup(f"ControlNet", is_img2img, elem_id_tabname)
+                        group, components = self.uigroup(f"ControlNet", is_img2img, elem_id_tabname)
                         infotext.register_unit(0, group)
-                        controls += (state,)
+                        controls += components
+                        self.unit_args_len.append(len(components))
 
         if shared.opts.data.get("control_net_sync_field_args", True):
             self.infotext_fields = infotext.infotext_fields
@@ -637,7 +640,7 @@ class Script(scripts.Script, metaclass=(
                 setattr(unit, param, default_value)
                 logger.warning(f'[{unit.module}.{param}] Invalid value({value}), using default value {default_value}.')
 
-    def controlnet_main_entry(self, p):
+    def controlnet_main_entry(self, p, units: list[UiControlNetUnit]):
         sd_ldm = p.sd_model
         unet = sd_ldm.model.diffusion_model
         self.noise_modifier = None
@@ -651,9 +654,10 @@ class Script(scripts.Script, metaclass=(
         # always clear (~0.05s)
         clear_all_secondary_control_models()
 
-        if not batch_hijack.instance.is_batch:
-            self.enabled_units = Script.get_enabled_units(p)
+        # if not batch_hijack.instance.is_batch:
+        #     self.enabled_units = Script.get_enabled_units(p)
 
+        self.enabled_units = [unit for unit in units if unit.enabled]
         if len(self.enabled_units) == 0:
            self.latest_network = None
            return
@@ -961,9 +965,9 @@ class Script(scripts.Script, metaclass=(
         self.detected_map = detected_maps
         self.post_processors = post_processors
 
-    def controlnet_hack(self, p):
+    def controlnet_hack(self, p, units: list[UiControlNetUnit]):
         t = time.time()
-        self.controlnet_main_entry(p)
+        self.controlnet_main_entry(p, units)
         if len(self.enabled_units) > 0:
             logger.info(f'ControlNet Hooked - Time = {time.time() - t}')
         return
@@ -974,7 +978,13 @@ class Script(scripts.Script, metaclass=(
 
     def process(self, p, *args, **kwargs):
         if not Script.process_has_sdxl_refiner(p):
-            self.controlnet_hack(p)
+            units = []
+            offset = 0
+            for args_len in self.unit_args_len:
+                unit_args = args[offset: offset + args_len]
+                units.append(UiControlNetUnit(*unit_args))
+                offset += args_len
+            self.controlnet_hack(p, units)
         return
 
     def before_process_batch(self, p, *args, **kwargs):
