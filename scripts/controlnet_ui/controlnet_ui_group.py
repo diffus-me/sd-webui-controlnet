@@ -1,3 +1,4 @@
+import inspect
 import json
 import gradio as gr
 import functools
@@ -26,15 +27,16 @@ from scripts.controlnet_ui.preset import ControlNetPresetUI
 from scripts.controlnet_ui.tool_button import ToolButton
 from modules import shared
 from modules.ui_components import FormRow
+from internal_controlnet.controlnet_unit import InputImage, ControlMode, ResizeMode, ControlNetUnit
 
 
-class UiControlNetUnit(external_code.ControlNetUnit):
+class UiControlNetUnit(ControlNetUnit):
     """The data class that stores all states of a ControlNetUnit."""
 
     def __init__(
         self,
         input_mode: batch_hijack.InputMode = batch_hijack.InputMode.SIMPLE,
-        batch_images: Optional[Union[str, List[external_code.InputImage]]] = None,
+        batch_images: Optional[Union[str, List[InputImage]]] = None,
         output_dir: str = "",
         loopback: bool = False,
         use_preview_as_input: bool = False,
@@ -59,6 +61,27 @@ class UiControlNetUnit(external_code.ControlNetUnit):
         self.batch_images = batch_images
         self.output_dir = output_dir
         self.loopback = loopback
+
+        signature = inspect.signature(self.__init__)
+        positional_args = []
+        for i, param in enumerate(signature.parameters.values()):
+            if param.kind not in (param.POSITIONAL_ONLY, param.POSITIONAL_OR_KEYWORD):
+                break
+            positional_args.append(param)
+
+        named_args_count = len(positional_args)
+
+        local_variables = locals()
+        self._args = []
+        for i in range(named_args_count):
+            arg_name = positional_args[i].name
+            arg_value = local_variables.get(arg_name)
+            self._args.append(arg_value)
+
+        self._args += args
+
+    def construct_args(self) -> list:
+        return self._args
 
 
 class ControlNetUiGroup(object):
@@ -93,7 +116,7 @@ class ControlNetUiGroup(object):
     def __init__(
         self,
         gradio_compat: bool,
-        default_unit: external_code.ControlNetUnit,
+        default_unit: ControlNetUnit,
         preprocessors: List[Callable],
     ):
         self.gradio_compat = gradio_compat
@@ -395,7 +418,7 @@ class ControlNetUiGroup(object):
             )
 
         self.control_mode = gr.Radio(
-            choices=[e.value for e in external_code.ControlMode],
+            choices=[e.value for e in ControlMode],
             value=self.default_unit.control_mode.value,
             label="Control Mode",
             elem_id=f"{elem_id_tabname}_{tabname}_controlnet_control_mode_radio",
@@ -403,7 +426,7 @@ class ControlNetUiGroup(object):
         )
 
         self.resize_mode = gr.Radio(
-            choices=[e.value for e in external_code.ResizeMode],
+            choices=[e.value for e in ResizeMode],
             value=self.default_unit.resize_mode.value,
             label="Resize Mode",
             elem_id=f"{elem_id_tabname}_{tabname}_controlnet_resize_mode_radio",
@@ -829,7 +852,7 @@ class ControlNetUiGroup(object):
             self.type_filter,
             *[
                 getattr(self, key)
-                for key in vars(external_code.ControlNetUnit()).keys()
+                for key in vars(ControlNetUnit()).keys()
             ],
         )
         if is_img2img:

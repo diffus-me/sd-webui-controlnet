@@ -5,41 +5,13 @@ from modules import scripts, processing, shared
 from scripts import global_state
 from scripts.processor import preprocessor_sliders_config, model_free_preprocessors
 from scripts.cn_logging import logger
-
+from internal_controlnet.controlnet_unit import ResizeMode, ControlMode, ControlNetUnit
 from modules.api import api
+from scripts.controlnet_ui.controlnet_ui_group import UiControlNetUnit
 
 
 def get_api_version() -> int:
     return 2
-
-
-class ControlMode(Enum):
-    """
-    The improved guess mode.
-    """
-
-    BALANCED = "Balanced"
-    PROMPT = "My prompt is more important"
-    CONTROL = "ControlNet is more important"
-
-
-class ResizeMode(Enum):
-    """
-    Resize modes for ControlNet input images.
-    """
-
-    RESIZE = "Just Resize"
-    INNER_FIT = "Crop and Resize"
-    OUTER_FIT = "Resize and Fill"
-
-    def int_value(self):
-        if self == ResizeMode.RESIZE:
-            return 0
-        elif self == ResizeMode.INNER_FIT:
-            return 1
-        elif self == ResizeMode.OUTER_FIT:
-            return 2
-        assert False, "NOTREACHED"
 
 
 resize_mode_aliases = {
@@ -136,54 +108,6 @@ def pixel_perfect_resolution(
 
     return int(np.round(estimation))
 
-
-InputImage = Union[np.ndarray, str]
-InputImage = Union[Dict[str, InputImage], Tuple[InputImage, InputImage], InputImage]
-
-
-class ControlNetUnit:
-    """
-    Represents an entire ControlNet processing unit.
-    """
-
-    def __init__(
-            self,
-            enabled: bool = True,
-            module: Optional[str] = None,
-            model: Optional[str] = None,
-            weight: float = 1.0,
-            image: Optional[InputImage] = None,
-            resize_mode: Union[ResizeMode, int, str] = ResizeMode.INNER_FIT,
-            low_vram: bool = False,
-            processor_res: int = -1,
-            threshold_a: float = -1,
-            threshold_b: float = -1,
-            guidance_start: float = 0.0,
-            guidance_end: float = 1.0,
-            pixel_perfect: bool = False,
-            control_mode: Union[ControlMode, int, str] = ControlMode.BALANCED,
-            **_kwargs,
-    ):
-        self.enabled = enabled
-        self.module = module
-        self.model = model
-        self.weight = weight
-        self.image = image
-        self.resize_mode = resize_mode
-        self.low_vram = low_vram
-        self.processor_res = processor_res
-        self.threshold_a = threshold_a
-        self.threshold_b = threshold_b
-        self.guidance_start = guidance_start
-        self.guidance_end = guidance_end
-        self.pixel_perfect = pixel_perfect
-        self.control_mode = control_mode
-
-    def __eq__(self, other):
-        if not isinstance(other, ControlNetUnit):
-            return False
-
-        return vars(self) == vars(other)
 
 
 def to_base64_nparray(encoding: str):
@@ -363,17 +287,18 @@ def update_cn_script_in_place(
 
     # fill in remaining parameters to satisfy max models, just in case script needs it.
     max_models = shared.opts.data.get("control_net_unit_count", 3)
-    cn_units = cn_units + [ControlNetUnit(enabled=False)] * max(max_models - len(cn_units), 0)
+    cn_units = cn_units + [UiControlNetUnit(enabled=False)] * max(max_models - len(cn_units), 0)
 
-    cn_script_args_diff = 0
     for script in script_runner.alwayson_scripts:
         if script is cn_script:
-            cn_script_args_diff = len(cn_units) - (cn_script.args_to - cn_script.args_from)
-            script_args[script.args_from:script.args_to] = cn_units
-            script.args_to = script.args_from + len(cn_units)
-        else:
-            script.args_from += cn_script_args_diff
-            script.args_to += cn_script_args_diff
+            args_from = script.args_from
+            for i, unit in enumerate(cn_units):
+                args = unit.construct_args()
+                unit_args_len = min(len(args), script.unit_args_len[i])
+
+                args_to = args_from + unit_args_len
+                script_args[args_from:args_to] = args[0:unit_args_len]
+                args_from += script.unit_args_len[i]
 
 
 def get_models(update: bool = False) -> List[str]:
