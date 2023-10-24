@@ -523,23 +523,19 @@ class Script(scripts.Script, metaclass=(
             detected_map = safe_numpy(detected_map)
             return get_pytorch_control(detected_map), detected_map
 
-    @staticmethod
-    def get_enabled_units(p):
-        units = external_code.get_all_units_in_processing(p)
-        if len(units) == 0:
-            # fill a null group
-            remote_unit = Script.parse_remote_call(p, Script.get_default_ui_unit(), 0)
-            if remote_unit.enabled:
-                units.append(remote_unit)
-        
-        enabled_units = [
-            copy(local_unit)
-            for idx, unit in enumerate(units)
-            for local_unit in (Script.parse_remote_call(p, unit, idx),)
-            if local_unit.enabled
-        ]
-        Infotext.write_infotext(enabled_units, p)
-        return enabled_units
+    def get_enabled_units(self, p):
+        if not hasattr(p, "_control_net_units"):
+            args = p.script_args[self.args_from : self.args_to]
+            units = []
+            offset = 0
+            for args_len in self.unit_args_len:
+                unit_args = args[offset: offset + args_len]
+                units.append(UiControlNetUnit(*unit_args))
+                offset += args_len
+
+            p._control_net_units = units
+
+        return [unit for unit in p._control_net_units if unit.enabled]
 
     @staticmethod
     def choose_input_image(
@@ -642,7 +638,7 @@ class Script(scripts.Script, metaclass=(
                 setattr(unit, param, default_value)
                 logger.warning(f'[{unit.module}.{param}] Invalid value({value}), using default value {default_value}.')
 
-    def controlnet_main_entry(self, p, units: list[UiControlNetUnit]):
+    def controlnet_main_entry(self, p):
         sd_ldm = p.sd_model
         unet = sd_ldm.model.diffusion_model
         self.noise_modifier = None
@@ -656,10 +652,9 @@ class Script(scripts.Script, metaclass=(
         # always clear (~0.05s)
         clear_all_secondary_control_models()
 
-        # if not batch_hijack.instance.is_batch:
-        #     self.enabled_units = Script.get_enabled_units(p)
+        if not batch_hijack.instance.is_batch:
+            self.enabled_units = self.get_enabled_units(p)
 
-        self.enabled_units = [unit for unit in units if unit.enabled]
         Infotext.write_infotext(self.enabled_units, p)
         if len(self.enabled_units) == 0:
            self.latest_network = None
@@ -968,9 +963,9 @@ class Script(scripts.Script, metaclass=(
         self.detected_map = detected_maps
         self.post_processors = post_processors
 
-    def controlnet_hack(self, p, units: list[UiControlNetUnit]):
+    def controlnet_hack(self, p):
         t = time.time()
-        self.controlnet_main_entry(p, units)
+        self.controlnet_main_entry(p)
         if len(self.enabled_units) > 0:
             logger.info(f'ControlNet Hooked - Time = {time.time() - t}')
         return
@@ -981,13 +976,7 @@ class Script(scripts.Script, metaclass=(
 
     def process(self, p, *args, **kwargs):
         if not Script.process_has_sdxl_refiner(p):
-            units = []
-            offset = 0
-            for args_len in self.unit_args_len:
-                unit_args = args[offset: offset + args_len]
-                units.append(UiControlNetUnit(*unit_args))
-                offset += args_len
-            self.controlnet_hack(p, units)
+            self.controlnet_hack(p)
         return
 
     def before_process_batch(self, p, *args, **kwargs):
