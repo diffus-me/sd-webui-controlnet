@@ -5,7 +5,7 @@ import torch.nn as nn
 from functools import partial
 from typing import Optional, Any
 
-from scripts.logging import logger
+from scripts.cn_logging import logger
 from scripts.enums import ControlModelType, AutoMachine, HiResFixOption
 from scripts.controlmodel_ipadapter import ImageEmbed
 from modules import devices, lowvram, shared, scripts

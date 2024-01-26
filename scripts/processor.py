@@ -11,7 +11,7 @@ from typing import Callable, Tuple, Union
 
 from modules.safe import Extra
 from modules import devices
-from scripts.logging import logger
+from scripts.cn_logging import logger
 
 
 def torch_handler(module: str, name: str):

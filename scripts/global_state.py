@@ -8,7 +8,7 @@ from modules.paths import models_path
 from scripts.processor import *
 import scripts.processor as processor
 from scripts.utils import ndarray_lru_cache
-from scripts.logging import logger
+from scripts.cn_logging import logger
 from scripts.enums import StableDiffusionVersion
 
 from typing import Dict, Callable, Optional, Tuple, List

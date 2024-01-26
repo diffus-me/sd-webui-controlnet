@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from transformers.models.clip.modeling_clip import CLIPVisionModelOutput
-from scripts.logging import logger
+from scripts.cn_logging import logger
 
 
 class ImageEmbed(NamedTuple):

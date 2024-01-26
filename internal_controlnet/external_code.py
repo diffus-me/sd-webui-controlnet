@@ -6,7 +6,7 @@ import numpy as np
 from modules import scripts, processing, shared
 from scripts import global_state
 from scripts.processor import preprocessor_sliders_config, model_free_preprocessors
-from scripts.logging import logger
+from scripts.cn_logging import logger
 from scripts.enums import HiResFixOption
 
 from modules.api import api

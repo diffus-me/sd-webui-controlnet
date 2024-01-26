@@ -14,7 +14,7 @@ from modules.api import api
 
 from scripts import external_code, global_state
 from scripts.processor import preprocessor_filters
-from scripts.logging import logger
+from scripts.cn_logging import logger
 from annotator.openpose import draw_poses, decode_json_as_poses
 from annotator.openpose.animalpose import draw_animalposes
 
