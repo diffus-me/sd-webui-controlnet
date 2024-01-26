@@ -274,9 +274,9 @@ class ControlNetUiGroup(object):
         self.generated_image = None
         self.mask_image_group = None
         self.mask_image = None
-        self.batch_tab = None
+        # self.batch_tab = None
         self.batch_image_dir = None
-        self.merge_tab = None
+        # self.merge_tab = None
         self.merge_gallery = None
         self.merge_upload_button = None
         self.merge_clear_button = None
@@ -407,14 +407,16 @@ class ControlNetUiGroup(object):
                                 interactive=True,
                             )
 
-                with gr.Tab(label="Batch") as self.batch_tab:
+                # with gr.Tab(label="Batch") as self.batch_tab:
+                with gr.Row(visible=False):
                     self.batch_image_dir = gr.Textbox(
                         label="Input Directory",
                         placeholder="Leave empty to use img2img batch controlnet input directory",
                         elem_id=f"{elem_id_tabname}_{tabname}_batch_image_dir",
                     )
 
-                with gr.Tab(label="Multi-Inputs") as self.merge_tab:
+                # with gr.Tab(label="Multi-Inputs") as self.merge_tab:
+                with gr.Row(visible=False):
                     self.merge_gallery = gr.Gallery(
                         columns=[4], rows=[2], object_fit="contain", height="auto"
                     )
@@ -1387,8 +1389,8 @@ class ControlNetUiGroup(object):
             merge_fn = lambda: InputMode.MERGE
             for input_tab, fn in (
                 (ui_group.upload_tab, simple_fn),
-                (ui_group.batch_tab, batch_fn),
-                (ui_group.merge_tab, merge_fn),
+                # (ui_group.batch_tab, batch_fn),
+                # (ui_group.merge_tab, merge_fn),
             ):
                 # Sync input_mode.
                 input_tab.select(

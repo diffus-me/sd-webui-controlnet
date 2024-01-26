@@ -329,7 +329,7 @@ class Script(scripts.Script, metaclass=(
                         ui_groups.append(group)
                         controls.extend(components)
                         self.unit_args_len.append(len(components))
-                with gr.Accordion(f"Batch Options", open=False, elem_id="controlnet_batch_options"):
+                with gr.Accordion(f"Batch Options", open=False, elem_id="controlnet_batch_options", visible=False):
                     self.ui_batch_options(is_img2img, elem_id_tabname)
 
         for i, ui_group in enumerate(ui_groups):
