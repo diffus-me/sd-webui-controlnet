@@ -836,6 +836,7 @@ class Script(scripts.Script, metaclass=(
         #     self.enabled_units = Script.get_enabled_units(p)
 
         self.enabled_units = [unit for unit in units if unit.enabled]
+        Infotext.write_infotext(self.enabled_units, p)
 
         batch_option_uint_separate = self.ui_batch_option_state[0] == external_code.BatchOption.SEPARATE.value
         batch_option_style_align = self.ui_batch_option_state[1]
