@@ -313,7 +313,7 @@ class Script(scripts.Script, metaclass=(
         elem_id_tabname = ("img2img" if is_img2img else "txt2img") + "_controlnet"
         with gr.Group(elem_id=elem_id_tabname):
             with gr.Accordion(f"ControlNet {controlnet_version.version_flag}", open = False, elem_id="controlnet"):
-                photopea = Photopea() if not shared.opts.data.get("controlnet_disable_photopea_edit", False) else None
+                photopea = Photopea() if not shared.opts.data.get("controlnet_disable_photopea_edit", True) else None
                 if max_models > 1:
                     with gr.Tabs(elem_id=f"{elem_id_tabname}_tabs"):
                         for i in range(max_models):
@@ -1280,7 +1280,7 @@ def on_ui_settings():
     shared.opts.add_option("controlnet_disable_openpose_edit", shared.OptionInfo(
         False, "Disable openpose edit", gr.Checkbox, {"interactive": True}, section=section))
     shared.opts.add_option("controlnet_disable_photopea_edit", shared.OptionInfo(
-        False, "Disable photopea edit", gr.Checkbox, {"interactive": True}, section=section))
+        True, "Disable photopea edit", gr.Checkbox, {"interactive": True}, section=section))
     shared.opts.add_option("controlnet_photopea_warning", shared.OptionInfo(
         True, "Photopea popup warning", gr.Checkbox, {"interactive": True}, section=section))
     shared.opts.add_option("controlnet_ignore_noninpaint_mask", shared.OptionInfo(
