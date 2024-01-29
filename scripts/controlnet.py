@@ -26,6 +26,8 @@ from scripts.cn_logging import logger
 from modules.processing import StableDiffusionProcessingImg2Img, StableDiffusionProcessingTxt2Img, StableDiffusionProcessing
 from modules.images import save_image
 from scripts.infotext import Infotext
+from internal_controlnet.controlnet_unit import ControlNetUnit, BatchOption
+
 
 import cv2
 import numpy as np
@@ -229,7 +231,7 @@ class Script(scripts.Script, metaclass=(
         self.detected_map = []
         self.post_processors = []
         self.noise_modifier = None
-        self.ui_batch_option_state = [external_code.BatchOption.DEFAULT.value, False]
+        self.ui_batch_option_state = [BatchOption.DEFAULT.value, False]
         self.unit_args_len = []
         batch_hijack.instance.process_batch_callbacks.append(self.batch_tab_process)
         batch_hijack.instance.process_batch_each_callbacks.append(self.batch_tab_process_each)
@@ -244,7 +246,7 @@ class Script(scripts.Script, metaclass=(
 
     @staticmethod
     def get_default_ui_unit(is_ui=True):
-        cls = UiControlNetUnit if is_ui else external_code.ControlNetUnit
+        cls = UiControlNetUnit if is_ui else ControlNetUnit
         return cls(
             enabled=False,
             module="none",
@@ -262,8 +264,8 @@ class Script(scripts.Script, metaclass=(
 
     def ui_batch_options(self, is_img2img: bool, elem_id_tabname: str):
         batch_option = gr.Radio(
-            choices=[e.value for e in external_code.BatchOption],
-            value=external_code.BatchOption.DEFAULT.value,
+            choices=[e.value for e in BatchOption],
+            value=BatchOption.DEFAULT.value,
             label="Batch Option",
             elem_id=f"{elem_id_tabname}_controlnet_batch_option_radio",
             elem_classes="controlnet_batch_option_radio",
@@ -418,7 +420,7 @@ class Script(scripts.Script, metaclass=(
         return attribute_value if attribute_value is not None else default
 
     @staticmethod
-    def parse_remote_call(p, unit: external_code.ControlNetUnit, idx):
+    def parse_remote_call(p, unit: ControlNetUnit, idx):
         selector = Script.get_remote_call
 
         unit.enabled = selector(p, "control_net_enabled", unit.enabled, idx, strict=True)
@@ -578,7 +580,7 @@ class Script(scripts.Script, metaclass=(
     @staticmethod
     def choose_input_image(
             p: processing.StableDiffusionProcessing,
-            unit: external_code.ControlNetUnit,
+            unit: ControlNetUnit,
             idx: int
         ) -> Tuple[np.ndarray, external_code.ResizeMode]:
         """ Choose input image from following sources with descending priority:
@@ -745,14 +747,14 @@ class Script(scripts.Script, metaclass=(
         return input_image
 
     @staticmethod
-    def bound_check_params(unit: external_code.ControlNetUnit) -> None:
+    def bound_check_params(unit: ControlNetUnit) -> None:
         """
         Checks and corrects negative parameters in ControlNetUnit 'unit'.
         Parameters 'processor_res', 'threshold_a', 'threshold_b' are reset to
         their default values if negative.
 
         Args:
-            unit (external_code.ControlNetUnit): The ControlNetUnit instance to check.
+            unit (ControlNetUnit): The ControlNetUnit instance to check.
         """
         cfg = preprocessor_sliders_config.get(
             global_state.get_module_basename(unit.module), [])
@@ -838,7 +840,7 @@ class Script(scripts.Script, metaclass=(
         self.enabled_units = [unit for unit in units if unit.enabled]
         Infotext.write_infotext(self.enabled_units, p)
 
-        batch_option_uint_separate = self.ui_batch_option_state[0] == external_code.BatchOption.SEPARATE.value
+        batch_option_uint_separate = self.ui_batch_option_state[0] == BatchOption.SEPARATE.value
         batch_option_style_align = self.ui_batch_option_state[1]
 
         if len(self.enabled_units) == 0 and not batch_option_style_align:
