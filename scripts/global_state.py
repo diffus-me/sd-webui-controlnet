@@ -277,6 +277,10 @@ def get_sd_version() -> StableDiffusionVersion:
         return StableDiffusionVersion.UNKNOWN
 
 
+def get_selected_sd_version() -> StableDiffusionVersion:
+    return StableDiffusionVersion.UNKNOWN
+
+
 def select_control_type(
     control_type: str,
     sd_version: StableDiffusionVersion = StableDiffusionVersion.UNKNOWN,

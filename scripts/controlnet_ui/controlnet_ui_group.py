@@ -917,7 +917,7 @@ class ControlNetUiGroup(object):
                 filtered_model_list,
                 default_option,
                 default_model,
-            ) = global_state.select_control_type(k, global_state.get_sd_version())
+            ) = global_state.select_control_type(k, global_state.get_selected_sd_version())
 
             if self.prevent_next_n_module_update > 0:
                 self.prevent_next_n_module_update -= 1
@@ -1358,7 +1358,7 @@ class ControlNetUiGroup(object):
             return
 
         self.callbacks_registered = True
-        self.register_sd_version_changed()
+        # self.register_sd_version_changed()
         self.register_send_dimensions()
         self.register_run_annotator()
         self.register_sync_batch_dir()
