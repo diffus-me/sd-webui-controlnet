@@ -706,19 +706,9 @@ class ControlNetUiGroup(object):
                     fn=UiControlNetUnit, inputs=list(unit_args), outputs=unit
                 )
 
-        (
-            ControlNetUiGroup.a1111_context.img2img_submit_button
-            if self.is_img2img
-            else ControlNetUiGroup.a1111_context.txt2img_submit_button
-        ).click(
-            fn=UiControlNetUnit,
-            inputs=list(unit_args),
-            outputs=unit,
-            queue=False,
-        )
         self.register_core_callbacks()
         self.ui_initialized = True
-        return unit
+        return list(unit_args)
 
     def register_send_dimensions(self):
         """Register event handler for send dimension button."""
