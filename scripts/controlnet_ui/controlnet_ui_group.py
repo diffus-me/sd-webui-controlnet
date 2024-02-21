@@ -173,26 +173,19 @@ class UiControlNetUnit(ControlNetUnit):
         self.output_dir = output_dir
         self.loopback = loopback
 
-        signature = inspect.signature(self.__init__)
-        positional_args = []
-        for i, param in enumerate(signature.parameters.values()):
-            if param.kind not in (param.POSITIONAL_ONLY, param.POSITIONAL_OR_KEYWORD):
-                break
-            positional_args.append(param)
+        self._args = [
+            input_mode,
+            batch_images,
+            output_dir,
+            loopback,
+            merge_gallery_files,
+            use_preview_as_input,
+            generated_image,
+            mask_image,
+        ]
 
-        named_args_count = len(positional_args)
-
-        local_variables = locals()
-        self._args = []
-        for i in range(named_args_count):
-            arg_name = positional_args[i].name
-            arg_value = local_variables.get(arg_name)
-            self._args.append(arg_value)
-
-        self._args += args
-
-    def construct_args(self) -> list:
-        return self._args
+    def to_args(self) -> list:
+        return self._args + super().to_args()
 
     def unfold_merged(self) -> List[ControlNetUnit]:
         """Unfolds a merged unit to multiple units. Keeps the unit merged for
