@@ -105,3 +105,24 @@ class ControlNetUnit:
             "ip-adapter_face_id_plus",
             "instant_id_face_embedding",
         )
+
+    def to_args(self) -> list:
+        return [
+            self.enabled,
+            self.module,
+            self.model,
+            self.weight,
+            self.image,
+            self.resize_mode,
+            self.low_vram,
+            self.processor_res,
+            self.threshold_a,
+            self.threshold_b,
+            self.guidance_start,
+            self.guidance_end,
+            self.pixel_perfect,
+            self.control_mode,
+            self.inpaint_crop_input_image,
+            self.hr_option,
+        ]
+

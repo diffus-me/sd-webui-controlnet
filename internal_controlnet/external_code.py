@@ -268,7 +268,7 @@ def update_cn_script_in_processing(
 def update_cn_script(
     script_runner: scripts.ScriptRunner,
     script_args: Union[Tuple[Any], List[Any]],
-    cn_units: List[ControlNetUnit],
+    cn_units: List[UiControlNetUnit],
 ) -> Union[Tuple[Any], List[Any]]:
     """
     Returns: The updated `script_args` with given `cn_units` used as ControlNet
@@ -290,14 +290,17 @@ def update_cn_script(
 
     # fill in remaining parameters to satisfy max models, just in case script needs it.
     max_models = shared.opts.data.get("control_net_unit_count", 3)
-    cn_units = cn_units + [ControlNetUnit(enabled=False)] * max(max_models - len(cn_units), 0)
+    cn_units = cn_units + [UiControlNetUnit(enabled=False)] * max(max_models - len(cn_units), 0)
+    args = []
+    for cn_unit in cn_units:
+        args.extend(cn_unit.to_args())
 
     cn_script_args_diff = 0
     for script in script_runner.alwayson_scripts:
         if script is cn_script:
-            cn_script_args_diff = len(cn_units) - (cn_script.args_to - cn_script.args_from)
-            updated_script_args[script.args_from:script.args_to] = cn_units
-            script.args_to = script.args_from + len(cn_units)
+            cn_script_args_diff = len(args) - (cn_script.args_to - cn_script.args_from)
+            updated_script_args[script.args_from:script.args_to] = args
+            script.args_to = script.args_from + len(args)
         else:
             script.args_from += cn_script_args_diff
             script.args_to += cn_script_args_diff
